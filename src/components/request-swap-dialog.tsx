@@ -17,6 +17,7 @@ import { ArrowRight, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { getUserById } from '@/app/actions/user';
+import { createSwapRequest } from '@/app/actions/swap-requests';
 
 interface RequestSwapDialogProps {
   isOpen: boolean;
@@ -28,6 +29,10 @@ interface RequestSwapDialogProps {
 export function RequestSwapDialog({ isOpen, setIsOpen, fromUserId, toUser }: RequestSwapDialogProps) {
   const { toast } = useToast();
   const [fromUser, setFromUser] = useState<User | null>(null);
+  const [offeredSkill, setOfferedSkill] = useState<string>('');
+  const [wantedSkill, setWantedSkill] = useState<string>('');
+  const [message, setMessage] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen && fromUserId) {
@@ -35,14 +40,61 @@ export function RequestSwapDialog({ isOpen, setIsOpen, fromUserId, toUser }: Req
     }
   }, [isOpen, fromUserId]);
 
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setOfferedSkill('');
+      setWantedSkill('');
+      setMessage('');
+    }
+  }, [isOpen]);
 
-  const handleSendRequest = () => {
-    // Here you would typically handle form submission, e.g., call an API
-    toast({
-      title: 'Request Sent!',
-      description: `Your swap request to ${toUser.name} has been sent successfully.`,
-    });
-    setIsOpen(false);
+  const handleSendRequest = async () => {
+    if (!offeredSkill || !wantedSkill) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please select both the skill you want to offer and the skill you want to learn.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!fromUserId) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to send a swap request.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await createSwapRequest(toUser.id, offeredSkill, wantedSkill, message);
+      
+      if (result.success) {
+        toast({
+          title: 'Request Sent!',
+          description: result.message,
+        });
+        setIsOpen(false);
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to send swap request:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send swap request. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   if (!fromUser) return null;
@@ -77,7 +129,7 @@ export function RequestSwapDialog({ isOpen, setIsOpen, fromUserId, toUser }: Req
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium">You Offer:</label>
-              <Select>
+              <Select value={offeredSkill} onValueChange={setOfferedSkill}>
                 <SelectTrigger className="w-full mt-1">
                   <SelectValue placeholder="Select a skill to teach" />
                 </SelectTrigger>
@@ -90,7 +142,7 @@ export function RequestSwapDialog({ isOpen, setIsOpen, fromUserId, toUser }: Req
             </div>
             <div>
               <label className="text-sm font-medium">You Request:</label>
-              <Select>
+              <Select value={wantedSkill} onValueChange={setWantedSkill}>
                 <SelectTrigger className="w-full mt-1">
                   <SelectValue placeholder="Select a skill to learn" />
                 </SelectTrigger>
@@ -107,13 +159,22 @@ export function RequestSwapDialog({ isOpen, setIsOpen, fromUserId, toUser }: Req
             <Textarea
               placeholder={`Hi ${toUser.name}, I'd love to swap skills with you...`}
               className="mt-1"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-          <Button onClick={handleSendRequest} className="bg-accent text-accent-foreground hover:bg-accent/90">
-            <Send className="mr-2 h-4 w-4" /> Send Request
+          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSendRequest} 
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+            disabled={isSubmitting || !offeredSkill || !wantedSkill}
+          >
+            <Send className="mr-2 h-4 w-4" /> 
+            {isSubmitting ? 'Sending...' : 'Send Request'}
           </Button>
         </DialogFooter>
       </DialogContent>

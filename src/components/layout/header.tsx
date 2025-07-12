@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { NotificationDropdown } from '../notification-dropdown';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -46,7 +47,10 @@ export default function Header() {
         </nav>
         <div className="hidden md:flex items-center justify-end space-x-4">
           {isAuthenticated ? (
-            <UserMenu />
+            <>
+              <NotificationDropdown />
+              <UserMenu />
+            </>
           ) : (
             <Button onClick={() => signIn()}>
               Login / Register

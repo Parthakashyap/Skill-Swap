@@ -1,20 +1,19 @@
 'use client';
 
-// NOTE: This page still uses mock data. It needs to be updated to fetch
-// swap requests from the database. This is a placeholder implementation.
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockRequests, currentUser } from '@/lib/mock-data'; // MOCK DATA
 import type { SwapRequest, SwapRequestStatus } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowLeft, ArrowRight, Check, ThumbsDown, ThumbsUp, X, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import RatingStars from '@/components/rating-stars';
 import { Textarea } from '@/components/ui/textarea';
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { getSwapRequests, updateSwapRequestStatus } from '@/app/actions/swap-requests';
 
 const statusConfig: Record<SwapRequestStatus, { color: string; icon: React.ElementType }> = {
   pending: { color: 'bg-yellow-500', icon: X },
@@ -24,16 +23,40 @@ const statusConfig: Record<SwapRequestStatus, { color: string; icon: React.Eleme
   cancelled: { color: 'bg-gray-500', icon: X },
 };
 
-const RequestCard = ({ request }: { request: SwapRequest }) => {
+const RequestCard = ({ request, currentUserId, onStatusUpdate }: { 
+  request: SwapRequest; 
+  currentUserId: string;
+  onStatusUpdate: () => void;
+}) => {
   const { toast } = useToast();
-  const isIncoming = request.toUser.id === currentUser.id;
+  const isIncoming = request.toUser.id === currentUserId;
 
-  const handleAction = (action: 'accept' | 'reject') => {
-    toast({
-      title: `Request ${action}ed`,
-      description: `You have ${action}ed the request from ${request.fromUser.name}.`,
-    });
-    // In a real app, this would update the request status via an API call.
+  const handleAction = async (action: 'accept' | 'reject') => {
+    try {
+      const status = action === 'accept' ? 'accepted' : 'rejected';
+      const result = await updateSwapRequestStatus(request.id, status);
+      
+      if (result.success) {
+        toast({
+          title: `Request ${action}ed`,
+          description: result.message,
+        });
+        onStatusUpdate(); // Refresh the data
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update request status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update request status. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -51,7 +74,7 @@ const RequestCard = ({ request }: { request: SwapRequest }) => {
           {isIncoming ? `${request.fromUser.name} wants to swap with you.` : `You sent a request to ${request.toUser.name}.`}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent>
         <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
           <div className="flex-1 text-center">
             <p className="text-sm text-muted-foreground">{isIncoming ? 'They Offer' : 'You Offer'}</p>
@@ -82,13 +105,12 @@ const RequestCard = ({ request }: { request: SwapRequest }) => {
 };
 
 const FeedbackCard = ({ request }: { request: SwapRequest }) => {
-  const userToRate = request.fromUser.id === currentUser.id ? request.toUser : request.fromUser;
   const { toast } = useToast();
 
   const handleSubmitFeedback = () => {
     toast({
       title: 'Feedback Submitted',
-      description: `Thank you for your feedback on ${userToRate.name}.`,
+      description: `Thank you for your feedback on this swap.`,
     });
   }
 
@@ -97,11 +119,11 @@ const FeedbackCard = ({ request }: { request: SwapRequest }) => {
       <CardHeader>
         <div className="flex items-center gap-4">
           <Avatar>
-            <AvatarImage src={userToRate.avatar} />
-            <AvatarFallback>{userToRate.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={request.fromUser.avatar} />
+            <AvatarFallback>{request.fromUser.name.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
-            <CardTitle>Rate your swap with {userToRate.name}</CardTitle>
+            <CardTitle>Rate your swap</CardTitle>
             <CardDescription>Swap of {request.offeredSkill} for {request.wantedSkill}</CardDescription>
           </div>
         </div>
@@ -113,7 +135,7 @@ const FeedbackCard = ({ request }: { request: SwapRequest }) => {
         </div>
         <div>
           <p className="text-sm font-medium mb-2">Comments</p>
-          <Textarea placeholder={`How was your experience with ${userToRate.name}?`} />
+          <Textarea placeholder="How was your experience with this swap?" />
         </div>
       </CardContent>
       <CardFooter className="justify-end">
@@ -124,9 +146,49 @@ const FeedbackCard = ({ request }: { request: SwapRequest }) => {
 }
 
 export default function RequestsPage() {
-  const incomingRequests = mockRequests.filter(req => req.toUser.id === currentUser.id && req.status === 'pending');
-  const outgoingRequests = mockRequests.filter(req => req.fromUser.id === currentUser.id && req.status === 'pending');
-  const completedSwaps = mockRequests.filter(req => req.status === 'completed' && (req.toUser.id === currentUser.id || req.fromUser.id === currentUser.id));
+  const { data: session } = useSession();
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<SwapRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadRequests = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      setLoading(true);
+      const swapRequests = await getSwapRequests(session.user.id);
+      setRequests(swapRequests);
+    } catch (error) {
+      console.error('Failed to load swap requests:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load swap requests. Please refresh the page.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, [session?.user?.id]);
+
+  const currentUserId = session?.user?.id;
+  const incomingRequests = requests.filter(req => req.toUser.id === currentUserId && req.status === 'pending');
+  const outgoingRequests = requests.filter(req => req.fromUser.id === currentUserId && req.status === 'pending');
+  const completedSwaps = requests.filter(req => req.status === 'completed' && (req.toUser.id === currentUserId || req.fromUser.id === currentUserId));
+
+  if (!session?.user?.id) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="font-headline text-4xl mb-6">Manage Your Swaps</h1>
+          <p className="text-muted-foreground">Please log in to view your swap requests.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -138,31 +200,63 @@ export default function RequestsPage() {
           <TabsTrigger value="completed">Completed & Feedback</TabsTrigger>
         </TabsList>
         <TabsContent value="incoming" className="mt-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {incomingRequests.length > 0 ? (
-              incomingRequests.map(req => <RequestCard key={req.id} request={req} />)
-            ) : (
-              <p className="text-muted-foreground col-span-full text-center py-8">No new incoming requests.</p>
-            )}
-          </div>
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Loading requests...</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {incomingRequests.length > 0 ? (
+                incomingRequests.map(req => (
+                  <RequestCard 
+                    key={req.id} 
+                    request={req} 
+                    currentUserId={currentUserId!}
+                    onStatusUpdate={loadRequests}
+                  />
+                ))
+              ) : (
+                <p className="text-muted-foreground col-span-full text-center py-8">No new incoming requests.</p>
+              )}
+            </div>
+          )}
         </TabsContent>
         <TabsContent value="outgoing" className="mt-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {outgoingRequests.length > 0 ? (
-              outgoingRequests.map(req => <RequestCard key={req.id} request={req} />)
-            ) : (
-              <p className="text-muted-foreground col-span-full text-center py-8">You haven't sent any pending requests.</p>
-            )}
-          </div>
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Loading requests...</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {outgoingRequests.length > 0 ? (
+                outgoingRequests.map(req => (
+                  <RequestCard 
+                    key={req.id} 
+                    request={req} 
+                    currentUserId={currentUserId!}
+                    onStatusUpdate={loadRequests}
+                  />
+                ))
+              ) : (
+                <p className="text-muted-foreground col-span-full text-center py-8">You haven't sent any pending requests.</p>
+              )}
+            </div>
+          )}
         </TabsContent>
         <TabsContent value="completed" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-2">
-             {completedSwaps.length > 0 ? (
-              completedSwaps.map(req => <FeedbackCard key={req.id} request={req} />)
-            ) : (
-              <p className="text-muted-foreground col-span-full text-center py-8">No completed swaps to review yet.</p>
-            )}
-          </div>
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Loading completed swaps...</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2">
+              {completedSwaps.length > 0 ? (
+                completedSwaps.map(req => <FeedbackCard key={req.id} request={req} />)
+              ) : (
+                <p className="text-muted-foreground col-span-full text-center py-8">No completed swaps to review yet.</p>
+              )}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
