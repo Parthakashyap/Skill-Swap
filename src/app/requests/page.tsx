@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,13 +10,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { SwapRequest, SwapRequestStatus } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowLeft, ArrowRight, Check, ThumbsDown, ThumbsUp, X, Star, MessageCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ThumbsDown, ThumbsUp, X, Star, MessageCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import RatingStars from '@/components/rating-stars';
 import { Textarea } from '@/components/ui/textarea';
-import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
 import { getSwapRequests, updateSwapRequestStatus } from '@/app/actions/swap-requests';
+import { submitFeedback, markSwapAsCompleted, checkFeedbackExists } from '@/app/actions/feedback';
 
 const statusConfig: Record<SwapRequestStatus, { color: string; icon: React.ElementType }> = {
   pending: { color: 'bg-yellow-500', icon: X },
@@ -54,6 +56,33 @@ const RequestCard = ({ request, currentUserId, onStatusUpdate }: {
       toast({
         title: 'Error',
         description: 'Failed to update request status. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleMarkAsCompleted = async () => {
+    try {
+      const result = await markSwapAsCompleted(request.id);
+      
+      if (result.success) {
+        toast({
+          title: 'Swap Completed',
+          description: result.message,
+        });
+        onStatusUpdate(); // Refresh the data
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to mark swap as completed:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to mark swap as completed. Please try again.',
         variant: 'destructive',
       });
     }
@@ -105,6 +134,14 @@ const RequestCard = ({ request, currentUserId, onStatusUpdate }: {
           <Button 
             variant="outline" 
             size="sm" 
+            onClick={handleMarkAsCompleted}
+            className="bg-blue-500 text-white hover:bg-blue-600"
+          >
+            <CheckCircle className="mr-2 h-4 w-4" /> Mark Completed
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
             onClick={() => window.location.href = '/messages'}
             className="bg-accent text-accent-foreground hover:bg-accent/90"
           >
@@ -116,14 +153,123 @@ const RequestCard = ({ request, currentUserId, onStatusUpdate }: {
   );
 };
 
-const FeedbackCard = ({ request }: { request: SwapRequest }) => {
+const FeedbackCard = ({ request, currentUserId }: { request: SwapRequest; currentUserId: string }) => {
   const { toast } = useToast();
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [feedbackExists, setFeedbackExists] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmitFeedback = () => {
-    toast({
-      title: 'Feedback Submitted',
-      description: `Thank you for your feedback on this swap.`,
-    });
+  const userToRate = request.fromUser.id === currentUserId ? request.toUser : request.fromUser;
+
+  // Check if feedback already exists for this swap
+  useEffect(() => {
+    const checkExistingFeedback = async () => {
+      try {
+        const exists = await checkFeedbackExists(request.id, currentUserId);
+        setFeedbackExists(exists);
+      } catch (error) {
+        console.error('Failed to check feedback existence:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkExistingFeedback();
+  }, [request.id, currentUserId]);
+
+  const handleSubmitFeedback = async () => {
+    if (rating === 0) {
+      toast({
+        title: 'Rating Required',
+        description: 'Please provide a rating before submitting feedback.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (feedbackExists) {
+      toast({
+        title: 'Feedback Already Submitted',
+        description: 'You have already submitted feedback for this swap.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const result = await submitFeedback(request.id, userToRate.id, rating, comment);
+      
+      if (result.success) {
+        toast({
+          title: 'Feedback Submitted',
+          description: result.message,
+        });
+        // Reset form and mark as submitted
+        setRating(0);
+        setComment('');
+        setFeedbackExists(true);
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit feedback. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <p className="text-muted-foreground">Loading feedback form...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (feedbackExists) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <Avatar>
+              <AvatarImage src={userToRate.avatar} />
+              <AvatarFallback>{userToRate.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <CardTitle>Feedback Submitted</CardTitle>
+              <CardDescription>Swap of {request.offeredSkill} for {request.wantedSkill}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <div className="inline-flex items-center gap-2 text-green-600 mb-2">
+              <Check className="h-5 w-5" />
+              <span className="font-medium">Feedback already submitted</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              You have already provided feedback for your swap with {userToRate.name}.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -131,11 +277,11 @@ const FeedbackCard = ({ request }: { request: SwapRequest }) => {
       <CardHeader>
         <div className="flex items-center gap-4">
           <Avatar>
-            <AvatarImage src={request.fromUser.avatar} />
-            <AvatarFallback>{request.fromUser.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={userToRate.avatar} />
+            <AvatarFallback>{userToRate.name.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
-            <CardTitle>Rate your swap</CardTitle>
+            <CardTitle>Rate your swap with {userToRate.name}</CardTitle>
             <CardDescription>Swap of {request.offeredSkill} for {request.wantedSkill}</CardDescription>
           </div>
         </div>
@@ -143,15 +289,30 @@ const FeedbackCard = ({ request }: { request: SwapRequest }) => {
       <CardContent className="space-y-4">
         <div>
           <p className="text-sm font-medium mb-2">Your Rating</p>
-          <RatingStars rating={0} isEditable onRatingChange={() => {}} size={24} />
+          <RatingStars 
+            rating={rating} 
+            isEditable 
+            onRatingChange={setRating} 
+            size={24} 
+          />
         </div>
         <div>
           <p className="text-sm font-medium mb-2">Comments</p>
-          <Textarea placeholder="How was your experience with this swap?" />
+          <Textarea 
+            placeholder={`How was your experience with ${userToRate.name}?`}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={3}
+          />
         </div>
       </CardContent>
       <CardFooter className="justify-end">
-        <Button onClick={handleSubmitFeedback}>Submit Feedback</Button>
+        <Button 
+          onClick={handleSubmitFeedback} 
+          disabled={submitting || rating === 0}
+        >
+          {submitting ? 'Submitting...' : 'Submit Feedback'}
+        </Button>
       </CardFooter>
     </Card>
   );
@@ -287,7 +448,13 @@ export default function RequestsPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2">
               {completedSwaps.length > 0 ? (
-                completedSwaps.map(req => <FeedbackCard key={req.id} request={req} />)
+                completedSwaps.map(req => (
+                  <FeedbackCard 
+                    key={req.id} 
+                    request={req} 
+                    currentUserId={currentUserId!}
+                  />
+                ))
               ) : (
                 <p className="text-muted-foreground col-span-full text-center py-8">No completed swaps to review yet.</p>
               )}
