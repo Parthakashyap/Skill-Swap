@@ -42,7 +42,7 @@ A modern web platform that connects people worldwide to exchange skills and know
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Parthakashyap/Skill-Swap.git
    cd skillS
    ```
 
