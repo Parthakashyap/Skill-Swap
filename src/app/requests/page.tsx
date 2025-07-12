@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { SwapRequest, SwapRequestStatus } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowLeft, ArrowRight, Check, ThumbsDown, ThumbsUp, X, Star } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ThumbsDown, ThumbsUp, X, Star, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import RatingStars from '@/components/rating-stars';
 import { Textarea } from '@/components/ui/textarea';
@@ -100,6 +100,18 @@ const RequestCard = ({ request, currentUserId, onStatusUpdate }: {
           </Button>
         </CardFooter>
       )}
+      {request.status === 'accepted' && (
+        <CardFooter className="flex justify-end gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.location.href = '/messages'}
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            <MessageCircle className="mr-2 h-4 w-4" /> Open Chat
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 };
@@ -177,6 +189,7 @@ export default function RequestsPage() {
   const currentUserId = session?.user?.id;
   const incomingRequests = requests.filter(req => req.toUser.id === currentUserId && req.status === 'pending');
   const outgoingRequests = requests.filter(req => req.fromUser.id === currentUserId && req.status === 'pending');
+  const acceptedRequests = requests.filter(req => req.status === 'accepted' && (req.toUser.id === currentUserId || req.fromUser.id === currentUserId));
   const completedSwaps = requests.filter(req => req.status === 'completed' && (req.toUser.id === currentUserId || req.fromUser.id === currentUserId));
 
   if (!session?.user?.id) {
@@ -194,9 +207,10 @@ export default function RequestsPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="font-headline text-4xl mb-6">Manage Your Swaps</h1>
       <Tabs defaultValue="incoming">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="incoming">Incoming</TabsTrigger>
           <TabsTrigger value="outgoing">Outgoing</TabsTrigger>
+          <TabsTrigger value="accepted">Accepted</TabsTrigger>
           <TabsTrigger value="completed">Completed & Feedback</TabsTrigger>
         </TabsList>
         <TabsContent value="incoming" className="mt-6">
@@ -239,6 +253,28 @@ export default function RequestsPage() {
                 ))
               ) : (
                 <p className="text-muted-foreground col-span-full text-center py-8">You haven't sent any pending requests.</p>
+              )}
+            </div>
+          )}
+        </TabsContent>
+        <TabsContent value="accepted" className="mt-6">
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Loading accepted requests...</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {acceptedRequests.length > 0 ? (
+                acceptedRequests.map(req => (
+                  <RequestCard 
+                    key={req.id} 
+                    request={req} 
+                    currentUserId={currentUserId!}
+                    onStatusUpdate={loadRequests}
+                  />
+                ))
+              ) : (
+                <p className="text-muted-foreground col-span-full text-center py-8">You haven't accepted any requests yet.</p>
               )}
             </div>
           )}

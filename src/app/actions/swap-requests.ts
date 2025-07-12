@@ -6,6 +6,7 @@ import { SwapRequest, SwapRequestStatus, User } from '@/lib/types';
 import { ObjectId } from 'mongodb';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { createChatFromSwapRequest } from '@/app/actions/messages';
 
 export async function createSwapRequest(
   toUserId: string,
@@ -194,7 +195,13 @@ export async function updateSwapRequestStatus(
 
     await notificationsCollection.insertOne(notification);
 
+    // If the request was accepted, create a chat
+    if (status === 'accepted') {
+      await createChatFromSwapRequest(requestId);
+    }
+
     revalidatePath('/requests');
+    revalidatePath('/messages');
     revalidatePath('/');
 
     return { 

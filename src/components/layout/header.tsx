@@ -14,6 +14,7 @@ import { NotificationDropdown } from '../notification-dropdown';
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/requests', label: 'Requests' },
+  { href: '/messages', label: 'Messages' },
   { href: '/admin', label: 'Admin' },
 ];
 
@@ -87,6 +88,7 @@ export default function Header() {
                 {isAuthenticated ? (
                   <>
                    <Link href="/profile" className={cn('transition-colors hover:text-primary', pathname === '/profile' ? 'text-primary' : 'text-muted-foreground')}>Profile</Link>
+                   <Link href="/messages" className={cn('transition-colors hover:text-primary', pathname === '/messages' ? 'text-primary' : 'text-muted-foreground')}>Messages</Link>
                    <Button variant="ghost" onClick={() => signOut()} className="justify-start text-lg p-0 h-auto text-muted-foreground">Logout</Button>
                   </>
                 ) : (
@@ -131,6 +133,9 @@ const UserMenu = () => {
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
            <Link href="/requests">My Swaps</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+           <Link href="/messages">Messages</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut()}>
