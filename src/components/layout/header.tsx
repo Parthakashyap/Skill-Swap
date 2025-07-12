@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Swords, LogIn, LogOut, User, MessageCircle, Settings, Bell } from 'lucide-react';
+import { Menu, LogIn, LogOut, User, MessageCircle, Settings, Bell, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -38,13 +38,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-gray-200/20 dark:border-gray-700/20 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md supports-[backdrop-filter]:bg-white/75 dark:supports-[backdrop-filter]:bg-gray-800/75">
       <div className="absolute inset-0 bg-gradient-to-r from-purple-500/2 via-blue-500/2 to-indigo-500/2"></div>
       <div className="container relative flex h-16 items-center">
-        <Link href="/" className="mr-8 flex items-center space-x-3 group">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-600 rounded-lg blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
-            <div className="relative bg-gradient-to-r from-primary to-purple-600 p-2 rounded-lg">
-              <Swords className="h-6 w-6 text-white" />
-            </div>
-          </div>
+        <Link href="/" className="mr-8 flex items-center group">
           <span className="font-headline text-2xl font-bold bg-gradient-to-r from-primary via-purple-600 to-blue-600 bg-clip-text text-transparent">
             SkillSwap
           </span>
@@ -97,13 +91,7 @@ export default function Header() {
             </SheetTrigger>
                          <SheetContent side="right" className="w-80 bg-gradient-to-b from-background to-muted/30">
                <nav className="grid gap-4 text-lg font-medium mt-8">
-                 <Link href="/" onClick={handleLinkClick} className="flex items-center space-x-3 mb-8 group">
-                   <div className="relative">
-                     <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-600 rounded-lg blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
-                     <div className="relative bg-gradient-to-r from-primary to-purple-600 p-2 rounded-lg">
-                       <Swords className="h-6 w-6 text-white" />
-                     </div>
-                   </div>
+                 <Link href="/" onClick={handleLinkClick} className="flex items-center mb-8 group">
                    <span className="font-headline text-2xl font-bold bg-gradient-to-r from-primary via-purple-600 to-blue-600 bg-clip-text text-transparent">
                      SkillSwap
                    </span>
@@ -148,7 +136,7 @@ export default function Header() {
                            : 'text-muted-foreground hover:text-primary'
                        )}
                      >
-                       <Swords className="h-5 w-5" />
+                       <Users className="h-5 w-5" />
                        <span>Requests</span>
                      </Link>
                      <Link 
@@ -262,7 +250,7 @@ const UserMenu = () => {
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="hover:bg-primary/5 cursor-pointer">
           <Link href="/requests" className="flex items-center space-x-3 px-4 py-3">
-            <Swords className="h-4 w-4" />
+            <Users className="h-4 w-4" />
             <span>My Swaps</span>
           </Link>
         </DropdownMenuItem>

@@ -1,4 +1,4 @@
-import { Swords, Heart, Github, Twitter, Linkedin } from 'lucide-react';
+import { Heart, Github, Twitter, Linkedin } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Footer() {
@@ -9,8 +9,7 @@ export default function Footer() {
           {/* Logo and Description */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <Swords className="h-8 w-8 text-primary" />
-              <span className="font-headline text-2xl font-bold text-primary">
+              <span className="font-headline text-2xl font-bold bg-gradient-to-r from-primary via-purple-600 to-blue-600 bg-clip-text text-transparent">
                 SkillSwap
               </span>
             </div>

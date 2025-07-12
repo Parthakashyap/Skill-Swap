@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Swords, BookOpen, Star, MapPin } from 'lucide-react';
+import { ArrowRightLeft, BookOpen, Star, MapPin } from 'lucide-react';
 import RatingStars from './rating-stars';
 import { RequestSwapDialog } from './request-swap-dialog';
 import { useState } from 'react';
@@ -119,7 +119,7 @@ export default function UserProfileCard({ user, currentUser }: UserProfileCardPr
               className="w-full bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-lg group-hover:shadow-xl transition-all duration-300 rounded-full" 
               onClick={handleRequestSwap}
             >
-              <Swords className="mr-2 h-4 w-4" /> 
+              <ArrowRightLeft className="mr-2 h-4 w-4" /> 
               Request Swap
             </Button>
           )}
