@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Send, Trash2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Send, Trash2, CheckCircle, MessageCircle, Clock, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { getMessages, sendMessage, getChats, type Message, type Chat, clearChat, markChatAsCleared } from '@/app/actions/messages';
@@ -42,7 +42,6 @@ export default function ChatPage() {
     try {
       setLoading(true);
       
-      // Load chat info
       const chats = await getChats(session.user.id);
       const currentChat = chats.find(c => c.id === chatId);
       
@@ -58,7 +57,6 @@ export default function ChatPage() {
       
       setChat(currentChat);
       
-      // Load messages
       const chatMessages = await getMessages(chatId);
       setMessages(chatMessages);
     } catch (error) {
@@ -86,7 +84,6 @@ export default function ChatPage() {
       
       if (result.success) {
         setNewMessage('');
-        // Reload messages to get the new one
         const updatedMessages = await getMessages(chatId);
         setMessages(updatedMessages);
       } else {
@@ -183,35 +180,51 @@ export default function ChatPage() {
 
   if (!session?.user?.id) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="font-headline text-4xl mb-6">Chat</h1>
-          <p className="text-muted-foreground">Please log in to view this chat.</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50/30 via-blue-50/30 to-indigo-100/30 dark:from-purple-900/10 dark:via-blue-900/10 dark:to-indigo-900/10">
+        <Card className="max-w-md text-center p-8 border-0 shadow-xl">
+          <CardContent>
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageCircle className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="font-headline text-2xl mb-4">Chat</h1>
+            <p className="text-muted-foreground">Please log in to view this chat.</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <p className="text-muted-foreground">Loading chat...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50/30 via-blue-50/30 to-indigo-100/30 dark:from-purple-900/10 dark:via-blue-900/10 dark:to-indigo-900/10">
+        <Card className="max-w-md text-center p-8 border-0 shadow-xl">
+          <CardContent>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading chat...</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!chat) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="font-headline text-4xl mb-6">Chat Not Found</h1>
-          <p className="text-muted-foreground">This chat does not exist or you do not have access to it.</p>
-          <Button onClick={() => router.push('/messages')} className="mt-4">
-            Back to Messages
-          </Button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50/30 via-blue-50/30 to-indigo-100/30 dark:from-purple-900/10 dark:via-blue-900/10 dark:to-indigo-900/10">
+        <Card className="max-w-md text-center p-8 border-0 shadow-xl">
+          <CardContent>
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <h1 className="font-headline text-2xl mb-4">Chat Not Found</h1>
+            <p className="text-muted-foreground mb-6">This chat does not exist or you do not have access to it.</p>
+            <Button 
+              onClick={() => router.push('/messages')}
+              className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
+            >
+              Back to Messages
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -219,129 +232,184 @@ export default function ChatPage() {
   const otherUser = getOtherParticipant();
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Chat Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/messages')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={otherUser?.avatar} alt={otherUser?.name} />
-              <AvatarFallback>{otherUser?.name?.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="font-headline text-2xl">{otherUser?.name}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="secondary" className="text-xs">
-                  {chat.swapRequest.offeredSkill} ↔ {chat.swapRequest.wantedSkill}
-                </Badge>
-                {chat.isCleared && (
-                  <Badge variant="outline" className="text-xs">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Completed
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleTalentSwapped}
-            disabled={chat.isCleared}
-          >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Talent Swapped
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleClearChat}
-            disabled={clearing}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {clearing ? 'Clearing...' : 'Clear Chat'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <Card className="h-[600px] flex flex-col">
-        <CardHeader className="pb-3 border-b">
-          <CardTitle className="text-lg">Messages</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
-            </div>
-          ) : (
-            messages.map((message) => {
-              const isOwnMessage = message.senderId === session.user?.id;
-              
-              return (
-                <div
-                  key={message.id}
-                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+    <div className="min-h-screen bg-gradient-to-br from-purple-50/30 via-blue-50/30 to-indigo-100/30 dark:from-purple-900/10 dark:via-blue-900/10 dark:to-indigo-900/10">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
+        {/* Chat Header */}
+        <Card className="mb-4 sm:mb-6 border-0 shadow-xl bg-gradient-to-r from-white via-white to-purple-50/50 dark:from-gray-800 dark:via-gray-800 dark:to-purple-900/20 backdrop-blur-sm">
+          <div className="h-1 bg-gradient-to-r from-primary via-purple-500 to-blue-500"></div>
+          <CardHeader className="pb-3 sm:pb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => router.push('/messages')}
+                  className="hover:bg-primary/5 flex-shrink-0"
                 >
-                  <div className={`flex items-end gap-2 max-w-[70%] ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {!isOwnMessage && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={message.senderAvatar} />
-                        <AvatarFallback>{message.senderName.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div className={`rounded-lg px-3 py-2 ${
-                      isOwnMessage 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted'
-                    }`}>
-                      <p className="text-sm">{message.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                      }`}>
-                        {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
-                      </p>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                  <div className="relative flex-shrink-0">
+                    <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-primary/20">
+                      <AvatarImage src={otherUser?.avatar} alt={otherUser?.name} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary/10 to-purple-500/10 text-primary font-semibold">
+                        {otherUser?.name?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h1 className="font-headline text-lg sm:text-2xl text-primary truncate">{otherUser?.name}</h1>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+                        {chat.swapRequest.offeredSkill}
+                      </Badge>
+                      <ArrowLeft className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      <Badge variant="outline" className="text-xs border-amber-500/20 text-amber-600 dark:text-amber-400">
+                        {chat.swapRequest.wantedSkill}
+                      </Badge>
+                      {chat.isCleared && (
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-600 border-green-200">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Completed
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
-              );
-            })
-          )}
-          <div ref={messagesEndRef} />
-        </CardContent>
-        
-        {/* Message Input */}
-        <div className="p-4 border-t">
-          <div className="flex gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              disabled={sending || chat.isCleared}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleSendMessage} 
-              disabled={!newMessage.trim() || sending || chat.isCleared}
-              size="sm"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTalentSwapped}
+                  disabled={chat.isCleared}
+                  className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 dark:bg-green-900/10 dark:hover:bg-green-900/20 flex-1 sm:flex-none text-xs sm:text-sm"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Talent Swapped</span>
+                  <span className="sm:hidden">Swapped</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearChat}
+                  disabled={clearing}
+                  className="text-red-600 hover:bg-red-50 border-red-200 dark:hover:bg-red-900/10 flex-1 sm:flex-none text-xs sm:text-sm"
+                >
+                  <Trash2 className="h-4 w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">{clearing ? 'Clearing...' : 'Clear Chat'}</span>
+                  <span className="sm:hidden">Clear</span>
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Messages Container */}
+        <Card className="border-0 shadow-2xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm flex flex-col h-[calc(100vh-200px)] sm:h-[calc(100vh-250px)]">
+          <div className="h-1 bg-gradient-to-r from-primary via-purple-500 to-blue-500"></div>
+          
+          <CardHeader className="pb-3 sm:pb-4 border-b border-muted/50 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                Messages
+              </CardTitle>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">{messages.length} messages</span>
+                <span className="sm:hidden">{messages.length}</span>
+              </div>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4 bg-gradient-to-b from-transparent to-gray-50/30 dark:to-gray-900/30">
+            {messages.length === 0 ? (
+              <div className="text-center py-8 sm:py-16">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No messages yet</h3>
+                <p className="text-muted-foreground text-sm sm:text-base px-4">Start the conversation! Share your knowledge and learn something new.</p>
+              </div>
+            ) : (
+              messages.map((message) => {
+                const isOwnMessage = message.senderId === session.user?.id;
+                
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-3 sm:mb-4`}
+                  >
+                    <div className={`flex items-end gap-2 sm:gap-3 max-w-[85%] sm:max-w-[75%] ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
+                      {!isOwnMessage && (
+                        <Avatar className="h-6 w-6 sm:h-8 sm:w-8 border border-muted flex-shrink-0">
+                          <AvatarImage src={message.senderAvatar} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                            {message.senderName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-sm ${
+                          isOwnMessage 
+                            ? 'bg-gradient-to-r from-primary to-purple-600 text-white' 
+                            : 'bg-white dark:bg-gray-700 border border-muted'
+                        }`}>
+                          <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                        </div>
+                        <div className={`flex items-center gap-1 px-2 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                          <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </CardContent>
+          
+          {/* Message Input */}
+          <div className="p-3 sm:p-6 border-t border-muted/50 bg-gradient-to-r from-white via-white to-purple-50/20 dark:from-gray-800 dark:via-gray-800 dark:to-purple-900/10 flex-shrink-0">
+            <div className="flex gap-2 sm:gap-3">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type your message..."
+                disabled={sending || chat.isCleared}
+                className="flex-1 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border-primary/20 focus:border-primary/50 rounded-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base"
+              />
+              <Button 
+                onClick={handleSendMessage} 
+                disabled={!newMessage.trim() || sending || chat.isCleared}
+                className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 rounded-full px-4 sm:px-6 shadow-lg flex-shrink-0"
+                size="sm"
+              >
+                {sending ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {chat.isCleared && (
+              <div className="mt-3 sm:mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200 text-center flex items-center justify-center gap-2">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                  This chat has been marked as completed. New messages are disabled.
+                </p>
+              </div>
+            )}
           </div>
-          {chat.isCleared && (
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              This chat has been marked as completed. New messages are disabled.
-            </p>
-          )}
-        </div>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 } 
