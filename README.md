@@ -92,7 +92,7 @@ src/
 ├── components/         # Reusable UI components
 ├── lib/               # Utilities and configurations
 ├── hooks/             # Custom React hooks
-└── ai/                # AI integration
+
 ```
 
 ## 🔧 Available Scripts
