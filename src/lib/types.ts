@@ -7,6 +7,7 @@ export interface User {
   bio: string;
   location?: string;
   isPublic?: boolean;
+  isAdmin?: boolean; // Add admin field
   skillsOffered: string[];
   skillsWanted: string[];
   availability: string;

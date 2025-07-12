@@ -30,11 +30,13 @@ export const authOptions: NextAuthOptions = {
         if (existingUser) {
           // User exists, not a new user
           (user as any).isNewUser = existingUser.skillsOffered?.length === 0;
+          (user as any).isAdmin = existingUser.isAdmin || false; // Add admin status
           // Use existing DB _id
           (user as any).id = existingUser._id.toString();
         } else {
           // New user, create a new record in the database
           (user as any).isNewUser = true;
+          (user as any).isAdmin = false; // New users are not admins by default
           
           const newUser: Omit<User, 'id' | '_id'> = {
               name: user.name ?? 'New User',
@@ -47,6 +49,7 @@ export const authOptions: NextAuthOptions = {
               rating: 0,
               reviews: 0,
               isPublic: true,
+              isAdmin: false, // New users are not admins by default
               location: ''
           };
 
@@ -63,6 +66,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = (user as any).id;
         token.isNewUser = (user as any).isNewUser;
+        token.isAdmin = (user as any).isAdmin; // Add admin status to token
       }
       return token;
     },
@@ -70,6 +74,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.isNewUser = token.isNewUser as boolean;
+        session.user.isAdmin = token.isAdmin as boolean; // Add admin status to session
       }
       return session;
     },

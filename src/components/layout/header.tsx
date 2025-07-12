@@ -15,13 +15,18 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/requests', label: 'Requests' },
   { href: '/messages', label: 'Messages' },
-  { href: '/admin', label: 'Admin' },
 ];
 
 export default function Header() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
+
+  // Add admin link conditionally
+  const allNavLinks = [
+    ...navLinks,
+    ...(session?.user?.isAdmin ? [{ href: '/admin', label: 'Admin' }] : [])
+  ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -33,7 +38,7 @@ export default function Header() {
           </span>
         </Link>
         <nav className="hidden md:flex flex-1 items-center space-x-6 text-sm font-medium">
-          {navLinks.map((link) => (
+          {allNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -73,7 +78,7 @@ export default function Header() {
                   <Swords className="h-8 w-8 text-primary" />
                   <span className="font-headline text-2xl font-bold">SkillSwap</span>
                 </Link>
-                {navLinks.map((link) => (
+                {allNavLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -89,6 +94,9 @@ export default function Header() {
                   <>
                    <Link href="/profile" className={cn('transition-colors hover:text-primary', pathname === '/profile' ? 'text-primary' : 'text-muted-foreground')}>Profile</Link>
                    <Link href="/messages" className={cn('transition-colors hover:text-primary', pathname === '/messages' ? 'text-primary' : 'text-muted-foreground')}>Messages</Link>
+                   {session?.user?.isAdmin && (
+                     <Link href="/admin" className={cn('transition-colors hover:text-primary', pathname === '/admin' ? 'text-primary' : 'text-muted-foreground')}>Admin</Link>
+                   )}
                    <Button variant="ghost" onClick={() => signOut()} className="justify-start text-lg p-0 h-auto text-muted-foreground">Logout</Button>
                   </>
                 ) : (
@@ -137,6 +145,11 @@ const UserMenu = () => {
         <DropdownMenuItem asChild>
            <Link href="/messages">Messages</Link>
         </DropdownMenuItem>
+        {session?.user?.isAdmin && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin">Admin Panel</Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut()}>
           <LogOut className="mr-2 h-4 w-4" />

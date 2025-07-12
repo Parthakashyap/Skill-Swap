@@ -11,6 +11,11 @@ export default withAuth(
       return NextResponse.redirect(new URL('/profile', req.url));
     }
     
+    // Check admin access for admin routes
+    if (url.pathname.startsWith('/admin') && !token?.isAdmin) {
+      return NextResponse.redirect(new URL('/', req.url));
+    }
+    
     // Allow the request to proceed
     return NextResponse.next();
   },
@@ -30,6 +35,11 @@ export default withAuth(
         // Allow the homepage and login page to be public
         if (pathname === '/' || pathname === '/login') {
             return true;
+        }
+
+        // For admin routes, require both authentication and admin status
+        if (pathname.startsWith('/admin')) {
+          return !!(token && token.isAdmin);
         }
 
         // If there's a token, the user is authorized for any other page.
