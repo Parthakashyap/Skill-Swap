@@ -58,7 +58,9 @@ A modern web platform that connects people worldwide to exchange skills and know
    NEXTAUTH_SECRET=your_nextauth_secret
    GOOGLE_CLIENT_ID=your_google_client_id
    GOOGLE_CLIENT_SECRET=your_google_client_secret
-   GOOGLE_AI_API_KEY=your_google_ai_api_key
+   NEXTAUTH_URL=http://localhost:9002
+   NEXTAUTH_SECRET=your_super_secret_value_for_nextauth
+   MONGODB_DB_NAME=your_db_name
    ```
 
 4. **Run the development server**
